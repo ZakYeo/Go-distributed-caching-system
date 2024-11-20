@@ -30,6 +30,10 @@ func GetCache()(*Cache){
     return &copy         // Return a pointer to the copy
 }
 
+func GetCacheItem(key string)(CacheItem){
+  return currentCache.Items[key]
+}
+
 func ClearCache(){
   currentCache = Cache{
     Items: map[string]CacheItem{},
