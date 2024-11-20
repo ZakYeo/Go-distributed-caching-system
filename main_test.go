@@ -1,6 +1,7 @@
 package main
 
 import "testing"
+import "strconv"
 
 func TestCanSetCacheWithOneItem(t *testing.T) {
 
@@ -41,4 +42,19 @@ func TestCanRemoveCacheItem(t *testing.T){
     t.Errorf("Cache item %s not removed from cache.", "cache_item")
   }
 
+}
+
+func TestWriteFromMultipleThreadsAtOnceToCache(t *testing.T){
+
+  for i:= 0; i < 1000; i++ {
+    itemToAdd := strconv.Itoa(i)
+    go AddCacheItem(itemToAdd, itemToAdd)
+  }
+
+
+  cache := GetCache()
+
+  if(len(cache.Items) != 1000){
+    t.Errorf("Cache items do not equal %s", "1000")
+  }
 }
