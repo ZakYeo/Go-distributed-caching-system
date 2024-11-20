@@ -25,6 +25,7 @@ func SetCacheItem(item string, cache Cache){
   currentCache.Items = append(cache.Items, cacheItem)
 }
 
-func GetCache()(Cache){
-  return currentCache
+func GetCache()(*Cache){
+    copy := currentCache // Make a shallow copy of the cache
+    return &copy         // Return a pointer to the copy
 }

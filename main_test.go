@@ -8,7 +8,7 @@ func TestCanSetCacheWithOneItem(t *testing.T) {
   }
 
   SetCacheItem("new_cache_item", testCacheItems)
-  currentCache = GetCache()
+  currentCache := GetCache()
 
 
   if(currentCache.Items[0].Value != "new_cache_item"){
