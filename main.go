@@ -3,7 +3,11 @@ package main
 import "fmt"
 
 type Cache struct {
-  Items string
+  Items []CacheItem
+}
+
+type CacheItem struct {
+  Value interface{}
 }
 
 func main() {
@@ -11,6 +15,9 @@ func main() {
 }
 
 func SetCache(item string, cache Cache)(Cache){
-  cache.Items = item
+  cacheItem:= CacheItem{
+    Value: item,
+  }
+  cache.Items = append(cache.Items, cacheItem)
   return cache
 }
