@@ -31,3 +31,14 @@ func TestCanSetCacheWithMultipleItems(t *testing.T) {
   }
   ClearCache()
 }
+
+func TestCanRemoveCacheItem(t *testing.T){
+
+  AddCacheItem("key1", "cache_item")
+  RemoveCacheItem("key1")
+  cache := GetCache()
+  if(len(cache.Items) > 0){
+    t.Errorf("Cache item %s not removed from cache.", "cache_item")
+  }
+
+}

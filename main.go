@@ -39,3 +39,7 @@ func ClearCache(){
     Items: map[string]CacheItem{},
   }
 }
+
+func RemoveCacheItem(key string){
+  delete(currentCache.Items, key)
+}
