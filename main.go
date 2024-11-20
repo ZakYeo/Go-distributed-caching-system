@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 type Cache struct {
-  Items []CacheItem
+  Items map[string]CacheItem
 }
 
 type CacheItem struct {
@@ -11,18 +11,18 @@ type CacheItem struct {
 }
 
 var currentCache = Cache{
-  Items: []CacheItem{},
+  Items: map[string]CacheItem{},
 }
 
 func main() {
     fmt.Println("Hello, World!") 
 }
 
-func AddCacheItem(item string){
+func AddCacheItem(key string, item string){
   cacheItem:= CacheItem{
     Value: item,
   }
-  currentCache.Items = append(currentCache.Items, cacheItem)
+  currentCache.Items[key] = cacheItem
 }
 
 func GetCache()(*Cache){
@@ -32,6 +32,6 @@ func GetCache()(*Cache){
 
 func ClearCache(){
   currentCache = Cache{
-    Items: []CacheItem{},
+    Items: map[string]CacheItem{},
   }
 }
