@@ -10,14 +10,21 @@ type CacheItem struct {
   Value interface{}
 }
 
+var currentCache = Cache{
+  Items: []CacheItem{},
+}
+
 func main() {
     fmt.Println("Hello, World!") 
 }
 
-func SetCache(item string, cache Cache)(Cache){
+func SetCacheItem(item string, cache Cache){
   cacheItem:= CacheItem{
     Value: item,
   }
-  cache.Items = append(cache.Items, cacheItem)
-  return cache
+  currentCache.Items = append(cache.Items, cacheItem)
+}
+
+func GetCache()(Cache){
+  return currentCache
 }
