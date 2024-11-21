@@ -2,6 +2,7 @@ package main
 
 import "testing"
 import "strconv"
+import "sync"
 
 func TestCanSetCacheWithOneItem(t *testing.T) {
 
@@ -41,15 +42,22 @@ func TestCanRemoveCacheItem(t *testing.T){
   if(len(cache.Items) > 0){
     t.Errorf("Cache item %s not removed from cache.", "cache_item")
   }
+  ClearCache()
 
 }
 
 func TestWriteFromMultipleThreadsAtOnceToCache(t *testing.T){
-
+  var wg sync.WaitGroup
   for i:= 0; i < 1000; i++ {
     itemToAdd := strconv.Itoa(i)
-    go AddCacheItem(itemToAdd, itemToAdd)
+    wg.Add(1)
+    go func(itemToAdd string){
+      defer wg.Done()
+      AddCacheItem(itemToAdd, itemToAdd)
+    }(itemToAdd)
   }
+
+  wg.Wait()
 
 
   cache := GetCache()
