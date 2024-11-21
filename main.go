@@ -3,11 +3,15 @@ package main
 import (
   "fmt"
   "sync"
+	"net/http"
+	"os"
+	"errors"
+  "encoding/json"
 )
 
 type Cache struct {
-  Items map[string]CacheItem
-  mu sync.Mutex
+    Items map[string]CacheItem `json:"items"`
+    mu    sync.Mutex           `json:"-"`
 }
 
 type CacheItem struct {
@@ -19,7 +23,15 @@ var currentCache = Cache{
 }
 
 func main() {
-    fmt.Println("Hello, World!") 
+	http.HandleFunc("/get/cache", getCacheEndpointWrapper)
+
+	err := http.ListenAndServe(":8080", nil)
+  if errors.Is(err, http.ErrServerClosed) {
+      fmt.Printf("server closed\n")
+    } else if err != nil {
+      fmt.Printf("error starting server: %s\n", err)
+      os.Exit(1)
+    }
 }
 
 func AddCacheItem(key string, item string){
@@ -29,6 +41,20 @@ func AddCacheItem(key string, item string){
   currentCache.mu.Lock()
   defer currentCache.mu.Unlock()
   currentCache.Items[key] = cacheItem
+}
+
+func getCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+    fmt.Printf("got /getCache request\n")
+
+    jsonBytes, err := json.Marshal(GetCache())
+    if err != nil {
+        http.Error(w, "Failed to encode cache as JSON", http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+
+    w.Write(jsonBytes)
 }
 
 func GetCache() *Cache {
