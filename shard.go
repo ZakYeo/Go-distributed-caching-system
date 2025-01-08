@@ -29,7 +29,7 @@ func AddCacheItem(key string, item string) {
 	currentCache.Items[key] = cacheItem
 }
 
-func getCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+func GetCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /getCache request\n")
 
 	jsonBytes, err := json.Marshal(GetCache())
@@ -41,6 +41,47 @@ func getCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	w.Write(jsonBytes)
+}
+
+func AddCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("got /addCacheItem request\n")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestBody struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&requestBody); err != nil {
+		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.Key == "" || requestBody.Value == "" {
+		http.Error(w, "Key and value cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	AddCacheItem(requestBody.Key, requestBody.Value)
+
+	response := struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{
+		Status:  "success",
+		Message: "Cache item added successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
+	}
 }
 
 func GetCache() *Cache {
