@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 )
 
@@ -20,21 +18,6 @@ type CacheItem struct {
 
 var currentCache = Cache{
 	Items: map[string]CacheItem{},
-}
-
-func LaunchShard(shard_number string) {
-	http.HandleFunc("/get/cache", getCacheEndpointWrapper)
-
-	port := fmt.Sprintf(":808%s", shard_number)
-
-	fmt.Printf("Shard %s launched\n", shard_number)
-	err := http.ListenAndServe(port, nil)
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server closed\n")
-	} else if err != nil {
-		fmt.Printf("error starting server on port %s: %s\n", port, err)
-		os.Exit(1)
-	}
 }
 
 func AddCacheItem(key string, item string) {
