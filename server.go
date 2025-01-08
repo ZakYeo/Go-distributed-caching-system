@@ -17,10 +17,11 @@ func getHello(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Hello, HTTP!\n")
 }
 
-func main() {
+func LaunchServer() {
 	http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
 
+	fmt.Printf("Caching Server Launched\n")
 	err := http.ListenAndServe(":3333", nil)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
