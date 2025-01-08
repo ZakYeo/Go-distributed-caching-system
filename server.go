@@ -121,8 +121,8 @@ func hashAndModulo(key string, numberOfShards int) int {
 }
 
 func LaunchShard(shard_number string) {
-	http.HandleFunc("/cache/get", GetCacheEndpointWrapper)
-	http.HandleFunc("/cache/add", AddCacheItemEndpointWrapper)
+	http.HandleFunc("/cache/get", GetShardCacheEndpointWrapper)
+	http.HandleFunc("/cache/add", addCacheItemEndpoint)
 
 	port := fmt.Sprintf(":808%s", shard_number)
 

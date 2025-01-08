@@ -29,7 +29,7 @@ func AddCacheItem(key string, item string) {
 	currentCache.Items[key] = cacheItem
 }
 
-func GetCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+func GetShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /getCache request\n")
 
 	jsonBytes, err := json.Marshal(GetCache())
@@ -43,7 +43,7 @@ func GetCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-func AddCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+func AddShardCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /addCacheItem request\n")
 
 	if r.Method != http.MethodPost {
