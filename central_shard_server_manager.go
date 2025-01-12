@@ -64,7 +64,7 @@ func addCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	shardAddress := "https://localhost:8081"
+	shardAddress := "http://localhost:8081"
 	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, hashAndModulo(requestBody.Key, numberOfShards), shardAddress)
 
 	response := map[string]string{
