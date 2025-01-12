@@ -9,14 +9,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 )
 
 /**
 This file contains the server that manages the shards
 */
-
-var numberOfShards = 0
-
 
 func LaunchServer() {
 	/**
@@ -41,6 +39,7 @@ func addCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	Called when the /addCacheItem of the server is called
 	We parse the request body and send the cache item to the appropriate shard's endpoint
 	*/
+	fmt.Printf("Central server received request: %s\n", time.Now())
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -65,7 +64,7 @@ func addCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 
 
 	shardAddress := "http://localhost:8081"
-	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, hashAndModulo(requestBody.Key, numberOfShards), shardAddress)
+	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, hashAndModulo(requestBody.Key, 1), shardAddress)
 
 	response := map[string]string{
 		"status":  "success",
@@ -93,7 +92,7 @@ func callAddCacheItemEndpointOfShard(key string, item string, shardNumberToSendT
 		return
 	}
 
-	resp, err := http.Post(shardAddress+"/addCacheItem", "application/json", bytes.NewReader(payloadBytes))
+	resp, err := http.Post(shardAddress+"/cache/add", "application/json", bytes.NewReader(payloadBytes))
 	if err != nil {
 		fmt.Printf("Failed to send request to shard %d: %v\n", shardNumberToSendTo, err)
 		return

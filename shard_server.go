@@ -24,7 +24,6 @@ func LaunchShard(shard_number string) {
 	port := fmt.Sprintf(":808%s", shard_number)
 
 	fmt.Printf("Shard %s launched\n", shard_number)
-	numberOfShards += 1
 	err := http.ListenAndServe(port, nil)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
