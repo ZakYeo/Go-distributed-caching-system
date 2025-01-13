@@ -64,7 +64,7 @@ func addCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 
 
 	shardAddress := "http://localhost:8081"
-	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, hashAndModulo(requestBody.Key, 1), shardAddress)
+	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, getShardNumberToSendTo(requestBody.Key, 1), shardAddress)
 
 	response := map[string]string{
 		"status":  "success",
@@ -106,7 +106,7 @@ func callAddCacheItemEndpointOfShard(key string, item string, shardNumberToSendT
 	}
 }
 
-func hashAndModulo(key string, numberOfShards int) int {
+func getShardNumberToSendTo(key string, numberOfShards int) int {
 	/**
 	Hashes the key and applies modulo to get the shard number
 	Used to determine which shard to send the cache item to
@@ -116,8 +116,8 @@ func hashAndModulo(key string, numberOfShards int) int {
 	// Use the first 8 bytes of the hash to convert it into an integer
 	hashValue := binary.BigEndian.Uint64(hash[:8])
 	// Apply modulo to get the bucket index
-	bucket := int(hashValue % uint64(numberOfShards))
+	shardNumberToSendTo := int(hashValue % uint64(numberOfShards))
 
-	return bucket
+	return shardNumberToSendTo
 }
 
