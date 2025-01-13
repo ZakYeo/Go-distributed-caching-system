@@ -26,8 +26,7 @@ curl -v -X POST http://localhost:3333/addCacheItem -H "Content-Type: application
 - Now in a Terminal, get the cache item using its key
 ````
 
-curl -X GET http://localhost:3333/getCacheItem/sampleKey
-
 ```
+curl -X GET http://localhost:3333/getCacheItem/sampleKey
 
 ```
