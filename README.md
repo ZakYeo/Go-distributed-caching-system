@@ -15,3 +15,19 @@ The following is a list of each file and their use:
   - Is intended to use to interact with each shard, remove shards, add shards, etc.
 - main.go:
   - Main file to run to launch a server and shard(s)
+
+# Try it out
+
+- Run in the root: `go run .`
+- Now in a Terminal, add a cache item via
+
+````
+curl -v -X POST http://localhost:3333/addCacheItem -H "Content-Type: application/json" -d "{\"key\":\"sampleKey\",\"value\":\"sampleValue\"}"```
+- Now in a Terminal, get the cache item using its key
+````
+
+curl -X GET http://localhost:3333/getCacheItem/sampleKey
+
+```
+
+```
