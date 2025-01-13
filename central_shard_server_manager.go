@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"github.com/gorilla/mux"
+	"io"
 )
 
 /**
@@ -22,10 +24,12 @@ func LaunchServer() {
 	This server is designed to handle creating / removing shards,
 	adding / removing cache from these shards, etc.
 	*/
-	http.HandleFunc("/addCacheItem", addCacheItemEndpointWrapper)
+	r := mux.NewRouter()
+	r.HandleFunc("/addCacheItem", addCacheItemEndpointWrapper)
+	r.HandleFunc("/getCacheItem/{key}", getCacheItemEndpointWrapper)
 
 	fmt.Printf("Caching Server Launched\n")
-	err := http.ListenAndServe(":3333", nil)
+	err := http.ListenAndServe(":3333", r)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {
@@ -106,6 +110,66 @@ func callAddCacheItemEndpointOfShard(key string, item string, shardNumberToSendT
 	}
 }
 
+
+func getCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+	/**
+	Called when the /getCacheItem of the server is called
+	*/
+	fmt.Printf("Central server received request: %s\n", time.Now())
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+    vars := mux.Vars(r)
+    key := vars["key"]
+
+    if key == "" {
+        http.Error(w, "Key cannot be empty", http.StatusBadRequest)
+        return
+    }
+
+	shardAddress := "http://localhost:8081"
+	callGetCacheItemEndpointOfShard(key, getShardNumberToSendTo(key, 1), shardAddress)
+
+	response := map[string]string{
+		"status":  "success",
+		"message": "Gotten cache item",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func callGetCacheItemEndpointOfShard(key string, shardNumberToGetFrom int, shardAddress string) {
+	/**
+	Given a key and the shard number to get the cache item from,
+	Sends a request to the specified shard's endpoint to get the cache item
+	*/
+	requestURL := fmt.Sprintf("%s/cache/get/%s", shardAddress, key)
+	fmt.Printf("Getting cache item from endpoint: %s\n", requestURL)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		fmt.Printf("Failed to send request to shard %d: %v\n", shardNumberToGetFrom, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Printf("Successfully got cache item from shard %d\n", shardNumberToGetFrom)
+		fmt.Printf("client: status code: %d\n", resp.StatusCode)
+		resBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("client: could not read response body: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("client: response body: %s\n", resBody)
+	} else {
+		fmt.Printf("Failed to get cache item from shard %d: %s\n", shardNumberToGetFrom, resp.Status)
+	}
+}
+
 func getShardNumberToSendTo(key string, numberOfShards int) int {
 	/**
 	Hashes the key and applies modulo to get the shard number
@@ -115,9 +179,11 @@ func getShardNumberToSendTo(key string, numberOfShards int) int {
 	hash := sha256.Sum256([]byte(key))
 	// Use the first 8 bytes of the hash to convert it into an integer
 	hashValue := binary.BigEndian.Uint64(hash[:8])
-	// Apply modulo to get the bucket index
-	shardNumberToSendTo := int(hashValue % uint64(numberOfShards))
+	// Apply modulo to get the shard number
+	// Plus one to make the shard number 1-indexed
+	shardNumberToSendTo := int(hashValue % uint64(numberOfShards)) + 1
 
 	return shardNumberToSendTo
 }
+
 

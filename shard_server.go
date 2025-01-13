@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"errors"
 	"os"
+	"github.com/gorilla/mux"
 )
 
 /**
@@ -18,13 +19,14 @@ func LaunchShard(shard_number string) {
 	/**
 	Launch a shard and its endpoints
 	*/
-	http.HandleFunc("/cache/get", GetShardCacheEndpointWrapper)
-	http.HandleFunc("/cache/add", AddShardCacheItemEndpointWrapper)
+	r := mux.NewRouter()
+	r.HandleFunc("/cache/get/{key}", GetShardCacheEndpointWrapper)
+	r.HandleFunc("/cache/add", AddShardCacheItemEndpointWrapper)
 
 	port := fmt.Sprintf(":808%s", shard_number)
 
 	fmt.Printf("Shard %s launched\n", shard_number)
-	err := http.ListenAndServe(port, nil)
+	err := http.ListenAndServe(port, r)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {
@@ -75,15 +77,44 @@ func AddShardCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("got /getCache request\n")
+    fmt.Printf("got /cache/get/{key} request on shard\n")
 
-	jsonBytes, err := json.Marshal(GetCache())
-	if err != nil {
-		http.Error(w, "Failed to encode cache as JSON", http.StatusInternalServerError)
-		return
-	}
+    vars := mux.Vars(r)
+    key := vars["key"]
 
-	w.Header().Set("Content-Type", "application/json")
+    if key == "" {
+        http.Error(w, "Key cannot be empty", http.StatusBadRequest)
+        return
+    }
 
-	w.Write(jsonBytes)
+	cacheItem := GetCacheItem(key)
+    if cacheItem.Value == nil {
+        http.Error(w, "Cache item not found", http.StatusNotFound)
+        return
+    }
+
+	// TODO:
+	// For now, assume the values for cache items are only strings
+	value, ok := cacheItem.Value.(string)
+    if !ok {
+        http.Error(w, "Cache item value is not a valid string", http.StatusInternalServerError)
+        return
+    }
+	fmt.Printf("Got cache item: %s\n", value)
+
+    response := struct {
+        Status  string `json:"status"`
+        Key     string `json:"key"`
+        Value   string `json:"value"`
+    }{
+        Status: "success",
+        Key:    key,
+        Value:  value,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
+    }
 }

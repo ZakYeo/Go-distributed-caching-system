@@ -10,10 +10,10 @@ func TestGetShardNumberToSendTo(t *testing.T) {
 		numberOfShards int
 		expectedShard  int
 	}{
-		{"key1", 10, 1},    // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 10 -> shard 2
-		{"key2", 5, 3},     // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 5 -> shard 3
-		{"", 200, 52},      // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 200 -> shard 52
-		{"long_key", 3, 1}, // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 3 -> shard 1
+		{"key1", 10, 2},    // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 10 -> plus 1 -> shard 2
+		{"key2", 5, 4},     // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 5 -> plus 1 -> shard 4
+		{"", 200, 53},      // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 200 -> plus 1 -> shard 53
+		{"long_key", 3, 2}, // Precomputed: SHA-256 hash -> first 8 bytes -> modulo 3 -> plus 1 -> shard 2
 	}
 
 	for _, tc := range testCases {
