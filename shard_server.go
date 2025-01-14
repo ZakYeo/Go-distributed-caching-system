@@ -97,3 +97,38 @@ func GetShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
     }
 }
+
+
+func GetAllShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+    fmt.Printf("got /cache/get/all request on shard\n")
+
+	cacheItem := GetCache()
+    if cacheItem.Items == nil {
+        http.Error(w, "Cache item not found", http.StatusNotFound)
+        return
+    }
+
+   items := make(map[string]string)
+    for key, cacheItem := range cacheItem.Items {
+		// TODO: For now, assume all cache item values are strings
+        if strValue, ok := cacheItem.Value.(string); ok {
+            items[key] = strValue
+        } else {
+            items[key] = fmt.Sprintf("%v", cacheItem.Value)
+        }
+    }
+
+    response := struct {
+        Status string            `json:"status"`
+        Items  map[string]string `json:"value"`
+    }{
+        Status: "success",
+        Items:  items,
+    } 
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
+    }
+}
