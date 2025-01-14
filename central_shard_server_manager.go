@@ -12,9 +12,11 @@ import (
 	"time"
 	"github.com/gorilla/mux"
 	"io"
+	"sync"
 )
 
 var numberOfShards = 0
+var shardMutex sync.Mutex
 
 /**
 This file contains the server that manages the shards
@@ -194,6 +196,7 @@ func LaunchShard() {
 	/**
 	Launch a shard and its endpoints
 	*/
+	shardMutex.Lock()
 	r := mux.NewRouter()
 	r.HandleFunc("/cache/get/{key}", GetShardCacheEndpointWrapper)
 	r.HandleFunc("/cache/add", AddShardCacheItemEndpointWrapper)
@@ -202,6 +205,7 @@ func LaunchShard() {
 
 	fmt.Printf("Shard %d launched\n", numberOfShards+1)
 	numberOfShards++
+	shardMutex.Unlock()
 	err := http.ListenAndServe(port, r)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
