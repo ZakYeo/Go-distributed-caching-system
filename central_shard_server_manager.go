@@ -14,6 +14,8 @@ import (
 	"io"
 )
 
+var numberOfShards = 0
+
 /**
 This file contains the server that manages the shards
 */
@@ -130,8 +132,7 @@ func getCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	shardAddress := "http://localhost:8081"
-	callGetCacheItemEndpointOfShard(key, getShardNumberToSendTo(key, 1), shardAddress)
+	callGetCacheItemEndpointOfShard(key, getShardNumberToSendTo(key, numberOfShards))
 
 	response := map[string]string{
 		"status":  "success",
@@ -142,11 +143,13 @@ func getCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func callGetCacheItemEndpointOfShard(key string, shardNumberToGetFrom int, shardAddress string) {
+func callGetCacheItemEndpointOfShard(key string, shardNumberToGetFrom int) {
 	/**
 	Given a key and the shard number to get the cache item from,
 	Sends a request to the specified shard's endpoint to get the cache item
 	*/
+
+	shardAddress := fmt.Sprintf("http://localhost:808%d", shardNumberToGetFrom)
 	requestURL := fmt.Sprintf("%s/cache/get/%s", shardAddress, key)
 	fmt.Printf("Getting cache item from endpoint: %s\n", requestURL)
 	resp, err := http.Get(requestURL)
@@ -187,3 +190,23 @@ func getShardNumberToSendTo(key string, numberOfShards int) int {
 }
 
 
+func LaunchShard() {
+	/**
+	Launch a shard and its endpoints
+	*/
+	r := mux.NewRouter()
+	r.HandleFunc("/cache/get/{key}", GetShardCacheEndpointWrapper)
+	r.HandleFunc("/cache/add", AddShardCacheItemEndpointWrapper)
+
+	port := fmt.Sprintf(":808%d", numberOfShards+1)
+
+	fmt.Printf("Shard %d launched\n", numberOfShards+1)
+	numberOfShards++
+	err := http.ListenAndServe(port, r)
+	if errors.Is(err, http.ErrServerClosed) {
+		fmt.Printf("server closed\n")
+	} else if err != nil {
+		fmt.Printf("error starting server on port %s: %s\n", port, err)
+		os.Exit(1)
+	}
+}

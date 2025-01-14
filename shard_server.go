@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"errors"
-	"os"
 	"github.com/gorilla/mux"
 )
 
@@ -15,25 +13,6 @@ A single shard is a server that contains its own cache
 Managed by the central server
 */
 
-func LaunchShard(shard_number string) {
-	/**
-	Launch a shard and its endpoints
-	*/
-	r := mux.NewRouter()
-	r.HandleFunc("/cache/get/{key}", GetShardCacheEndpointWrapper)
-	r.HandleFunc("/cache/add", AddShardCacheItemEndpointWrapper)
-
-	port := fmt.Sprintf(":808%s", shard_number)
-
-	fmt.Printf("Shard %s launched\n", shard_number)
-	err := http.ListenAndServe(port, r)
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server closed\n")
-	} else if err != nil {
-		fmt.Printf("error starting server on port %s: %s\n", port, err)
-		os.Exit(1)
-	}
-}
 
 func AddShardCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /addCacheItem request on shard\n")
