@@ -66,6 +66,11 @@ func GetShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    if key == "all"{
+        GetAllShardCache(w, r)
+        return
+    }
+
 	cacheItem := GetCacheItem(key)
     if cacheItem.Value == nil {
         http.Error(w, "Cache item not found", http.StatusNotFound)
@@ -99,7 +104,7 @@ func GetShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func GetAllShardCacheEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+func GetAllShardCache(w http.ResponseWriter, r *http.Request) {
     fmt.Printf("got /cache/get/all request on shard\n")
 
 	cacheItem := GetCache()
