@@ -31,6 +31,7 @@ func LaunchServer() {
 	r := mux.NewRouter()
 	r.HandleFunc("/addCacheItem", addCacheItemEndpointWrapper)
 	r.HandleFunc("/getCacheItem/{key}", getCacheItemEndpointWrapper)
+	r.HandleFunc("/getAllCacheItems", getAllCacheItemsEndpointWrapper)
 
 	fmt.Printf("Caching Server Launched\n")
 	err := http.ListenAndServe(":3333", r)
@@ -72,7 +73,7 @@ func addCacheItemEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 
 
 	shardAddress := "http://localhost:8081"
-	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, getShardNumberToSendTo(requestBody.Key, 1), shardAddress)
+	callAddCacheItemEndpointOfShard(requestBody.Key, requestBody.Value, getShardNumberToSendTo(requestBody.Key, numberOfShards), shardAddress)
 
 	response := map[string]string{
 		"status":  "success",
@@ -151,6 +152,7 @@ func callGetCacheItemEndpointOfShard(key string, shardNumberToGetFrom int) {
 	Sends a request to the specified shard's endpoint to get the cache item
 	*/
 
+	fmt.Printf("Calling get cache item endpoint of shard using key: %s, shard number to get from: %d", key, shardNumberToGetFrom)
 	shardAddress := fmt.Sprintf("http://localhost:808%d", shardNumberToGetFrom)
 	requestURL := fmt.Sprintf("%s/cache/get/%s", shardAddress, key)
 	fmt.Printf("Getting cache item from endpoint: %s\n", requestURL)
@@ -180,6 +182,9 @@ func getShardNumberToSendTo(key string, numberOfShards int) int {
 	Hashes the key and applies modulo to get the shard number
 	Used to determine which shard to send the cache item to
 	*/
+	shardMutex.Lock()
+	defer shardMutex.Unlock()
+	fmt.Printf("Calculating shard number to send to. Received key: %s, Num of shards: %d\n", key, numberOfShards)
 	// Compute the SHA-256 hash of the key
 	hash := sha256.Sum256([]byte(key))
 	// Use the first 8 bytes of the hash to convert it into an integer
@@ -188,6 +193,7 @@ func getShardNumberToSendTo(key string, numberOfShards int) int {
 	// Plus one to make the shard number 1-indexed
 	shardNumberToSendTo := int(hashValue % uint64(numberOfShards)) + 1
 
+	fmt.Printf("Calculated shard number to send to: %d", shardNumberToSendTo)
 	return shardNumberToSendTo
 }
 
@@ -214,3 +220,71 @@ func LaunchShard() {
 		os.Exit(1)
 	}
 }
+
+
+func getAllCacheItemsEndpointWrapper(w http.ResponseWriter, r *http.Request) {
+	/**
+	Called when the /getAllCacheItems of the server is called
+	*/
+	fmt.Printf("Central server received request: %s\n", time.Now())
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	for i := 1; i <= numberOfShards; i++ {
+		callGetAllCacheEndpointOfShard(i)
+	}
+
+	response := map[string]string{
+		"status":  "success",
+		"message": "Gotten cache item",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func callGetAllCacheEndpointOfShard(shardNumberToGetFrom int){
+	shardAddress := fmt.Sprintf("http://localhost:808%d", shardNumberToGetFrom)
+	requestURL := fmt.Sprintf("%s/cache/get/all", shardAddress)
+	fmt.Printf("Getting all cache from endpoint: %s\n", requestURL)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		fmt.Printf("Failed to send request to shard %d: %v\n", shardNumberToGetFrom, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Printf("Successfully got cache from shard %d\n", shardNumberToGetFrom)
+		fmt.Printf("client: status code: %d\n", resp.StatusCode)
+		resBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("client: could not read response body: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("client: response body: %s\n", resBody)
+	} else {
+		fmt.Printf("Failed to get cache item from shard %d: %s\n", shardNumberToGetFrom, resp.Status)
+	}
+}
+
+/*func LaunchShardEndpoint(){
+	// When launching a new shard after the server has been created, we need to update the number of shards
+	// Updating the number of shards affect which key the shard will be sent to
+	// Therefore we need to grab the cache of every shard
+	// Launch the new shard, and then reassign the cache to the new shard numbers
+	// TODO: logic for this
+	/*var shardCacheData map[string]string
+
+	shardCacheData = make(map[string]string)
+	for i := 1; i <= numberOfShards; i++ {
+		// TODO: Save this into a variable (shardCacheData)
+		callGetAllCacheEndpointOfShard(i)
+	}
+	// Then launch the new shard
+	// Empty cache of all shards
+	// Reassign cache to the new shard numbers
+}*/
