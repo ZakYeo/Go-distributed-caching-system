@@ -17,6 +17,10 @@ import (
 
 var numberOfShards = 0
 var shardMutex sync.Mutex
+type shardGetAllCacheResponse struct {
+	Status string            `json:"status"`
+	Cache  map[string]string `json:"value"`
+}
 
 /**
 This file contains the server that manages the shards
@@ -232,43 +236,64 @@ func getAllCacheItemsEndpointWrapper(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
+	allShardsCache := make(map[int]map[string]string)
 
 	for i := 1; i <= numberOfShards; i++ {
-		callGetAllCacheEndpointOfShard(i)
+		cacheFromShard, err := callGetAllCacheEndpointOfShard(i)
+		if err != nil {
+			fmt.Printf("Error getting cache from shard %d: %v\n", i, err)
+			continue
+		}
+		allShardsCache[i] = cacheFromShard
 	}
 
-	response := map[string]string{
+	response := map[string]interface{}{
 		"status":  "success",
-		"message": "Gotten cache item",
+		"cache":   allShardsCache,
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Could not encode response: %v\n", err)
+	}
 }
 
-func callGetAllCacheEndpointOfShard(shardNumberToGetFrom int){
+func callGetAllCacheEndpointOfShard(shardNumberToGetFrom int) (map[string]string, error) {
 	shardAddress := fmt.Sprintf("http://localhost:808%d", shardNumberToGetFrom)
 	requestURL := fmt.Sprintf("%s/cache/get/all", shardAddress)
 	fmt.Printf("Getting all cache from endpoint: %s\n", requestURL)
+
 	resp, err := http.Get(requestURL)
 	if err != nil {
 		fmt.Printf("Failed to send request to shard %d: %v\n", shardNumberToGetFrom, err)
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		fmt.Printf("Successfully got cache from shard %d\n", shardNumberToGetFrom)
-		fmt.Printf("client: status code: %d\n", resp.StatusCode)
-		resBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Printf("client: could not read response body: %s\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("client: response body: %s\n", resBody)
-	} else {
+	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Failed to get cache item from shard %d: %s\n", shardNumberToGetFrom, resp.Status)
+		return nil, fmt.Errorf("shard %d returned status code %d", shardNumberToGetFrom, resp.StatusCode)
 	}
+
+	fmt.Printf("Successfully got cache from shard %d\n", shardNumberToGetFrom)
+	fmt.Printf("client: status code: %d\n", resp.StatusCode)
+
+	resBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("client: could not read response body: %s\n", err)
+		return nil, err
+	}
+
+	fmt.Printf("client: response body: %s\n", resBody)
+
+	var shardResp shardGetAllCacheResponse
+	if err := json.Unmarshal(resBody, &shardResp); err != nil {
+		fmt.Printf("Could not unmarshal response for shard %d: %v\n", shardNumberToGetFrom, err)
+		return nil, err
+	}
+
+	return shardResp.Cache, nil
 }
 
 /*func LaunchShardEndpoint(){
